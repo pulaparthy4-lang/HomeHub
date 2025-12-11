@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HomeHub — Family Manager</title>
+  <style>
+    :root{
+      --bg:#f7fafc; /* light */
+      --card:#ffffff;
+      --muted:#6b7280;
+      --accent:#2563eb;
+      --accent-2:#06b6d4;
+      --success:#16a34a;
+      --danger:#ef4444;
+      --glass: rgba(255,255,255,0.6);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%; margin:0; background:var(--bg); color:#0f172a}
+    .container{max-width:1100px;margin:24px auto;padding:18px}
+
+    header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:18px}
+    .brand{display:flex;align-items:center;gap:12px}
+    .logo{width:48px;height:48px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:20px}
+    h1{font-size:20px;margin:0}
+    .sub{color:var(--muted);font-size:13px}
+
+    .top-actions{display:flex;gap:8px;align-items:center}
+    button, .btn{background:var(--accent);color:white;border:none;padding:8px 12px;border-radius:8px;cursor:pointer}
+    .btn.secondary{background:transparent;color:var(--accent);border:1px solid rgba(37,99,235,0.12)}
+    .btn.ghost{background:transparent;color:var(--muted);border:1px solid rgba(15,23,42,0.04)}
+
+    .layout{display:grid;grid-template-columns:320px 1fr;gap:18px}
+    @media (max-width:880px){.layout{grid-template-columns:1fr}}
+
+    /* sidebar */
+    .sidebar{background:var(--card);padding:14px;border-radius:12px;box-shadow:0 6px 18px rgba(2,6,23,0.04)}
+    .section-title{font-size:13px;color:var(--muted);margin-bottom:8px}
+    .members{display:flex;gap:8px;flex-wrap:wrap}
+    .member{background:linear-gradient(180deg,var(--glass),rgba(255,255,255,0.8));padding:8px 10px;border-radius:999px;font-weight:600;color:#0f172a;border:1px solid rgba(2,6,23,0.04)}
+    input[type=text], input[type=number], select, textarea{width:100%;padding:8px;border-radius:8px;border:1px solid rgba(15,23,42,0.06);font-size:14px}
+    .small{font-size:13px;color:var(--muted)}
+
+    /* main */
+    .grid{display:grid;grid-template-columns:1fr 380px;gap:18px}
+    @media (max-width:1100px){.grid{grid-template-columns:1fr}}
+
+    .card{background:var(--card);padding:14px;border-radius:12px;box-shadow:0 6px 18px rgba(2,6,23,0.04)}
+    .dashboard-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    @media (max-width:700px){.dashboard-grid{grid-template-columns:repeat(1,1fr)}}
+    .stat{padding:12px;border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,0.9),var(--card));}
+    .stat h3{margin:0;font-size:16px}
+    .stat p{margin:6px 0 0;color:var(--muted)}
+
+    /* lists */
+    .task{display:flex;align-items:center;justify-content:space-between;padding:10px;border-radius:8px;border:1px dashed rgba(15,23,42,0.03);margin-bottom:8px}
+    .task .meta{display:flex;gap:10px;align-items:center}
+    .avatar{width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:white;font-weight:700}
+    .task .title{font-weight:600}
+    .task .right{display:flex;gap:8px;align-items:center}
+    .pill{padding:6px 8px;border-radius:999px;background:rgba(2,6,23,0.04);font-size:13px}
+
+    .expense-row{display:flex;align-items:center;justify-content:space-between;padding:10px;border-radius:8px;border-bottom:1px solid rgba(2,6,23,0.03)}
+
+    footer{margin-top:18px;color:var(--muted);font-size:13px}
+
+    /* modal simple */
+    .modal{position:fixed;left:0;top:0;right:0;bottom:0;display:none;align-items:center;justify-content:center;background:rgba(2,6,23,0.4);z-index:40}
+    .modal.open{display:flex}
+    .modal .panel{width:100%;max-width:520px;background:var(--card);padding:16px;border-radius:12px}
+    .row{display:flex;gap:8px}
+    .row.col{flex-direction:column}
+
+    .tiny{font-size:12px;color:var(--muted)}
+    .muted{color:var(--muted)}
+
+    /* nice little animation */
+    .fade-in{animation:fadein .28s ease}
+    @keyframes fadein{from{transform:translateY(6px);opacity:0}to{transform:none;opacity:1}}
+
+    /* empty state */
+    .empty{padding:24px;border-radius:10px;text-align:center;color:var(--muted)}
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <div class="logo">HH</div>
+        <div>
+          <h1>HomeHub</h1>
+          <div class="sub">Family chores, expenses & simple budgeting</div>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button id="openTask">+ New Task</button>
+        <button class="btn secondary" id="openExpense">+ Expense</button>
+        <button class="btn ghost" id="resetBtn" title="Reset demo data">Reset</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <aside class="sidebar">
+        <div class="section-title">Family Members</div>
+        <div id="membersWrap" class="members"></div>
+        <div style="height:12px"></div>
+        <div class="section-title">Add member</div>
+        <div class="row">
+          <input id="memberName" placeholder="Name" />
+          <button id="addMember">Add</button>
+        </div>
+        <div style="height:14px"></div>
+        <div class="section-title">Storage</div>
+        <div class="tiny">Data persists locally in your browser using <code>localStorage</code>. Use Reset to clear.</div>
+      </aside>
+
+      <section>
+        <div class="grid">
+          <div>
+            <div class="card">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                <div>
+                  <div class="small muted">Dashboard</div>
+                  <h2 style="margin:4px 0 0">Overview</h2>
+                </div>
+                <div class="small muted">Updated: <span id="updatedAt">-</span></div>
+              </div>
+
+              <div class="dashboard-grid" id="stats">
+                <div class="stat">
+                  <h3 id="totalExp">₹0</h3>
+                  <p>Total expenses</p>
+                </div>
+                <div class="stat">
+                  <h3 id="taskCount">0</h3>
+                  <p>Active tasks</p>
+                </div>
+                <div class="stat">
+                  <h3 id="donePercent">0%</h3>
+                  <p>Tasks completed</p>
+                </div>
+              </div>
+
+              <div style="height:12px"></div>
+              <div style="display:flex;gap:12px;align-items:center">
+                <div style="flex:1">
+                  <div class="small muted">Category-wise expenses</div>
+                  <canvas id="catChart" width="400" height="120" style="width:100%;height:120px;border-radius:8px;background:linear-gradient(180deg,rgba(243,246,255,0.6),white);display:block"></canvas>
+                </div>
+                <div style="width:140px">
+                  <div class="small muted">Upcoming</div>
+                  <div id="upcomingList"></div>
+                </div>
+              </div>
+            </div>
+
+            <div style="height:12px"></div>
+
+            <div class="card fade-in">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+                <div>
+                  <div class="small muted">Tasks</div>
+                  <h3 style="margin:4px 0 0">Manage Tasks</h3>
+                </div>
+                <div class="tiny muted">Assign tasks to members</div>
+              </div>
+
+              <div id="tasksWrap"></div>
+              <div id="tasksEmpty" class="empty" style="display:none">No tasks yet — add your first family task.</div>
+            </div>
+
+          </div>
+
+          <aside>
+            <div class="card fade-in">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                <div>
+                  <div class="small muted">Expenses</div>
+                  <h3 style="margin:4px 0 0">Latest Expenses</h3>
+                </div>
+                <div class="tiny muted">Track category & amount</div>
+              </div>
+
+              <div id="expensesWrap"></div>
+              <div id="expEmpty" class="empty" style="display:none">No expenses logged yet.</div>
+
+              <div style="height:12px"></div>
+              <div class="small muted">Quick add</div>
+              <div style="display:flex;gap:8px;margin-top:8px">
+                <input id="quickAmount" type="number" placeholder="Amount" />
+                <select id="quickCat"><option value="Groceries">Groceries</option><option value="Bills">Bills</option><option value="Transport">Transport</option><option value="Shopping">Shopping</option></select>
+                <button id="quickAdd">Add</button>
+              </div>
+            </div>
+
+            <div style="height:12px"></div>
+            <div class="card">
+              <div class="small muted">Settings</div>
+              <div style="height:8px"></div>
+              <label class="tiny">Theme</label>
+              <div style="height:6px"></div>
+              <select id="themeSelect">
+                <option value="light">Light (default)</option>
+                <option value="dark">Dark</option>
+              </select>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </main>
+
+    <footer>HomeHub — Local-only demo. All data saved to your browser.</footer>
+  </div>
+
+  <!-- modal: task -->
+  <div id="modalTask" class="modal">
+    <div class="panel">
+      <h3 id="taskModalTitle">New Task</h3>
+      <div class="row col" style="margin-top:8px">
+        <input id="taskTitle" placeholder="Task title" />
+        <textarea id="taskDesc" rows="3" placeholder="Description (optional)"></textarea>
+        <div style="display:flex;gap:8px">
+          <select id="taskAssignee"></select>
+          <input id="taskDue" type="date" />
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
+          <button id="closeTask">Cancel</button>
+          <button id="saveTask" class="btn">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- modal: expense -->
+  <div id="modalExp" class="modal">
+    <div class="panel">
+      <h3 id="expModalTitle">Add Expense</h3>
+      <div class="row col" style="margin-top:8px">
+        <input id="expAmount" type="number" placeholder="Amount (₹)" />
+        <input id="expNote" placeholder="Note (eg. Milk, electricity)" />
+        <select id="expCategory"><option>Groceries</option><option>Bills</option><option>Transport</option><option>Shopping</option><option>Other</option></select>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
+          <button id="closeExp">Cancel</button>
+          <button id="saveExp" class="btn">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ---------- Simple local storage & state ---------- */
+    const LS_TASKS = 'homehub_tasks_v1'
+    const LS_EXP = 'homehub_exp_v1'
+    const LS_MEM = 'homehub_mem_v1'
+
+    let tasks = []
+    let expenses = []
+    let members = []
+
+    function uid(prefix='id'){return prefix + '_' + Math.random().toString(36).slice(2,9)}
+
+    function load(){
+      try{
+        tasks = JSON.parse(localStorage.getItem(LS_TASKS) || '[]')
+        expenses = JSON.parse(localStorage.getItem(LS_EXP) || '[]')
+        members = JSON.parse(localStorage.getItem(LS_MEM) || '[]')
+      }catch(e){tasks=[];expenses=[];members=[]}
+
+      // default sample members if empty
+      if(members.length===0){members = [{id:uid('m'),name:'Mom'},{id:uid('m'),name:'Dad'},{id:uid('m'),name:'Alex'}]}
+      renderAll()
+    }
+    function saveAll(){
+      localStorage.setItem(LS_TASKS, JSON.stringify(tasks))
+      localStorage.setItem(LS_EXP, JSON.stringify(expenses))
+      localStorage.setItem(LS_MEM, JSON.stringify(members))
+      document.getElementById('updatedAt').innerText = new Date().toLocaleString()
+    }
+
+    /* ---------- renderers ---------- */
+    function renderMembers(){
+      const wrap = document.getElementById('membersWrap')
+      wrap.innerHTML=''
+      members.forEach(m=>{
+        const d = document.createElement('div');d.className='member';d.innerText=m.name
+        wrap.appendChild(d)
+      })
+      // fill assignee select
+      const sel = document.getElementById('taskAssignee')
+      sel.innerHTML = ''
+      members.forEach(m=>{const o=document.createElement('option');o.value=m.id;o.innerText=m.name;sel.appendChild(o)})
+    }
+
+    function renderStats(){
+      const total = expenses.reduce((s,e)=>s+Number(e.amount||0),0)
+      document.getElementById('totalExp').innerText = '₹' + total.toFixed(2)
+      document.getElementById('taskCount').innerText = tasks.length
+      const done = tasks.filter(t=>t.done).length
+      document.getElementById('donePercent').innerText = tasks.length? Math.round((done/tasks.length)*100) + '%':'0%'
+
+      // upcoming (soonest 3 due)
+      const upcoming = tasks.filter(t=>t.due && !t.done).sort((a,b)=>new Date(a.due)-new Date(b.due)).slice(0,3)
+      const up = document.getElementById('upcomingList'); up.innerHTML=''
+      if(upcoming.length===0){up.innerHTML='<div class="tiny muted">No upcoming tasks</div>'}
+      upcoming.forEach(u=>{const r=document.createElement('div');r.className='tiny';r.style.marginBottom='6px';r.innerHTML='<strong>'+u.title+'</strong><br><span class="muted">Due '+u.due+'</span>';up.appendChild(r)})
+
+      // category chart
+      drawCategoryChart()
+    }
+
+    function renderTasks(){
+      const wrap = document.getElementById('tasksWrap'); wrap.innerHTML=''
+      if(tasks.length===0){document.getElementById('tasksEmpty').style.display='block'; return} else {document.getElementById('tasksEmpty').style.display='none'}
+      tasks.slice().reverse().forEach(t=>{
+        const row = document.createElement('div'); row.className='task'
+        const left = document.createElement('div'); left.className='meta'
+        const av = document.createElement('div'); av.className='avatar'; av.innerText = (t.assigneeName||'A').slice(0,2)
+        const txt = document.createElement('div')
+        const ttl = document.createElement('div'); ttl.className='title'; ttl.innerText = t.title
+        const desc = document.createElement('div'); desc.className='tiny muted'; desc.style.marginTop='4px'; desc.innerText = (t.desc||'')
+        txt.appendChild(ttl); if(t.desc) txt.appendChild(desc)
+        left.appendChild(av); left.appendChild(txt)
+
+        const right = document.createElement('div'); right.className='right'
+        const pill = document.createElement('div'); pill.className='pill'; pill.innerText = t.assigneeName || 'Unassigned'
+        const due = document.createElement('div'); due.className='tiny muted'; due.innerText = t.due? ('Due '+t.due):''
+        const chk = document.createElement('input'); chk.type='checkbox'; chk.checked=!!t.done; chk.title='Mark complete'
+        chk.addEventListener('change',()=>{t.done = chk.checked; saveAll(); renderAll(); animateDone(chk)})
+        const edit = document.createElement('button'); edit.className='btn ghost'; edit.innerText='Edit'; edit.style.padding='6px 8px'; edit.addEventListener('click',()=>openTaskModal(t.id))
+        const del = document.createElement('button'); del.className='btn ghost'; del.innerText='Delete'; del.style.padding='6px 8px'; del.addEventListener('click',()=>{if(confirm('Delete task?')){tasks = tasks.filter(x=>x.id!==t.id); saveAll(); renderAll()}})
+
+        right.appendChild(chk); right.appendChild(pill); right.appendChild(due); right.appendChild(edit); right.appendChild(del)
+        row.appendChild(left); row.appendChild(right)
+        wrap.appendChild(row)
+      })
+    }
+
+    function renderExpenses(){
+      const wrap = document.getElementById('expensesWrap'); wrap.innerHTML=''
+      if(expenses.length===0){document.getElementById('expEmpty').style.display='block'; return} else {document.getElementById('expEmpty').style.display='none'}
+      expenses.slice().reverse().forEach(e=>{
+        const r = document.createElement('div'); r.className='expense-row'
+        const left = document.createElement('div'); left.innerHTML = '<div style="font-weight:600">'+e.note+'</div><div class="tiny muted">'+(e.category||'Other')+' • '+new Date(e.at).toLocaleDateString()+'</div>'
+        const right = document.createElement('div'); right.innerHTML = '<div style="text-align:right"><div style="font-weight:700">₹'+Number(e.amount).toFixed(2)+'</div><div class="tiny muted">'+(e.paidByName||'')+'</div></div>'
+        const del = document.createElement('button'); del.className='btn ghost'; del.innerText='Del'; del.style.padding='6px 8px'; del.addEventListener('click',()=>{if(confirm('Delete expense?')){expenses=expenses.filter(x=>x.id!==e.id); saveAll(); renderAll()}})
+        r.appendChild(left); r.appendChild(right); r.appendChild(del)
+        wrap.appendChild(r)
+      })
+    }
+
+    function renderAll(){ renderMembers(); renderStats(); renderTasks(); renderExpenses(); }
+
+    /* ---------- simple chart ---------- */
+    function drawCategoryChart(){
+      const canvas = document.getElementById('catChart')
+      const ctx = canvas.getContext('2d')
+      // clear
+      ctx.clearRect(0,0,canvas.width,canvas.height)
+      // device pixel ratio
+      const dpr = window.devicePixelRatio || 1
+      canvas.width = canvas.clientWidth * dpr
+      canvas.height = canvas.clientHeight * dpr
+      ctx.scale(dpr,dpr)
+
+      // aggregate
+      const map = {}
+      expenses.forEach(e=>{map[e.category] = (map[e.category]||0) + Number(e.amount)})
+      const cats = Object.keys(map)
+      if(cats.length===0){ctx.fillStyle='#94a3b8';ctx.font='14px sans-serif';ctx.fillText('No data',10,40);return}
+      const values = cats.map(c=>map[c])
+      const max = Math.max(...values)
+      const pad = 20
+      const w = canvas.clientWidth - pad*2
+      const h = canvas.clientHeight - pad*2
+      const barW = Math.max(18, (w / cats.length) * 0.6)
+
+      cats.forEach((c,i)=>{
+        const val = map[c]
+        const x = pad + i*(barW + 14)
+        const barH = (val/max) * (h - 24)
+        const y = pad + (h - barH)
+        // gradient
+        const g = ctx.createLinearGradient(x,y,x,y+barH)
+        g.addColorStop(0,'rgba(37,99,235,0.9)')
+        g.addColorStop(1,'rgba(6,182,212,0.7)')
+        ctx.fillStyle = g
+        roundRect(ctx,x,y,barW,barH,6,true,false)
+        // label
+        ctx.fillStyle = '#0f172a'
+        ctx.font = '12px sans-serif'
+        ctx.fillText(c, x, pad + h + 16)
+      })
+    }
+    function roundRect(ctx,x,y,w,h,r,fill,stroke){if(typeof r==='undefined')r=5;ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();if(fill)ctx.fill();if(stroke)ctx.stroke();}
+
+    /* ---------- modals & events ---------- */
+    document.getElementById('openTask').addEventListener('click',()=>openTaskModal())
+    document.getElementById('openExpense').addEventListener('click',()=>openExpModal())
+    document.getElementById('closeTask').addEventListener('click',()=>closeModal('modalTask'))
+    document.getElementById('closeExp').addEventListener('click',()=>closeModal('modalExp'))
+
+    document.getElementById('saveTask').addEventListener('click',saveTaskFromModal)
+    document.getElementById('saveExp').addEventListener('click',saveExpFromModal)
+
+    document.getElementById('addMember').addEventListener('click',()=>{
+      const v=document.getElementById('memberName').value.trim(); if(!v) return alert('Enter name')
+      members.push({id:uid('m'),name:v}); document.getElementById('memberName').value=''; saveAll(); renderMembers();
+    })
+
+    document.getElementById('quickAdd').addEventListener('click',()=>{
+      const amt = Number(document.getElementById('quickAmount').value||0)
+      if(!amt){alert('Enter amount');return}
+      const cat = document.getElementById('quickCat').value
+      expenses.push({id:uid('e'),amount:amt,note:cat,category:cat,at:new Date()}); document.getElementById('quickAmount').value=''
+      saveAll(); renderAll();
+    })
+
+    document.getElementById('resetBtn').addEventListener('click',()=>{if(confirm('Reset all HomeHub data?')){localStorage.removeItem(LS_TASKS);localStorage.removeItem(LS_EXP);localStorage.removeItem(LS_MEM);tasks=[];expenses=[];members=[];load();}})
+
+    // theme
+    document.getElementById('themeSelect').addEventListener('change',e=>applyTheme(e.target.value))
+    function applyTheme(t){if(t==='dark'){document.documentElement.style.setProperty('--bg','#0b1220');document.documentElement.style.setProperty('--card','#071021');document.documentElement.style.setProperty('--muted','#9aa6b2');document.documentElement.style.setProperty('--accent','#7c3aed');document.documentElement.style.setProperty('--accent-2','#06b6d4');document.documentElement.style.setProperty('--glass','rgba(8,12,18,0.5)');document.body.style.color='#e6eef8'}else{document.documentElement.style.setProperty('--bg','#f7fafc');document.documentElement.style.setProperty('--card','#ffffff');document.documentElement.style.setProperty('--muted','#6b7280');document.documentElement.style.setProperty('--accent','#2563eb');document.documentElement.style.setProperty('--accent-2','#06b6d4');document.documentElement.style.setProperty('--glass','rgba(255,255,255,0.6)');document.body.style.color='#0f172a'}}
+
+    // open/close helpers
+    function openTaskModal(id){
+      const modal=document.getElementById('modalTask'); modal.classList.add('open')
+      document.getElementById('taskModalTitle').innerText = id? 'Edit Task':'New Task'
+      if(id){ const t = tasks.find(x=>x.id===id); document.getElementById('taskTitle').value=t.title; document.getElementById('taskDesc').value=t.desc||''; document.getElementById('taskAssignee').value=t.assigneeId||members[0].id; document.getElementById('taskDue').value=t.due||''; modal.dataset.edit = id } else { document.getElementById('taskTitle').value='';document.getElementById('taskDesc').value='';document.getElementById('taskAssignee').value=members[0].id;document.getElementById('taskDue').value=''; delete modal.dataset.edit }
+    }
+    function openExpModal(id){
+      const modal=document.getElementById('modalExp'); modal.classList.add('open')
+      document.getElementById('expModalTitle').innerText = id? 'Edit Expense':'Add Expense'
+      if(id){ const e = expenses.find(x=>x.id===id); document.getElementById('expAmount').value=e.amount; document.getElementById('expNote').value=e.note; document.getElementById('expCategory').value=e.category; modal.dataset.edit=id } else { document.getElementById('expAmount').value='';document.getElementById('expNote').value='';document.getElementById('expCategory').value='Groceries'; delete modal.dataset.edit }
+    }
+    function closeModal(id){document.getElementById(id).classList.remove('open')}
+
+    function saveTaskFromModal(){
+      const modal = document.getElementById('modalTask'); const id = modal.dataset.edit
+      const title = document.getElementById('taskTitle').value.trim(); if(!title){alert('Enter title');return}
+      const desc = document.getElementById('taskDesc').value.trim(); const assigneeId = document.getElementById('taskAssignee').value; const assigneeName = (members.find(m=>m.id===assigneeId)||{}).name || ''
+      const due = document.getElementById('taskDue').value
+      if(id){ const t = tasks.find(x=>x.id===id); t.title=title; t.desc=desc; t.assigneeId=assigneeId; t.assigneeName=assigneeName; t.due=due } else { tasks.push({id:uid('t'),title,desc,assigneeId,assigneeName,due,done:false}) }
+      saveAll(); renderAll(); closeModal('modalTask')
+    }
+
+    function saveExpFromModal(){
+      const modal = document.getElementById('modalExp'); const id = modal.dataset.edit
+      const amt = Number(document.getElementById('expAmount').value||0); if(!amt){alert('Enter amount');return}
+      const note = document.getElementById('expNote').value.trim()||'Expense'
+      const category = document.getElementById('expCategory').value
+      if(id){ const e = expenses.find(x=>x.id===id); e.amount=amt; e.note=note; e.category=category } else { expenses.push({id:uid('e'),amount:amt,note,category,at:new Date()}) }
+      saveAll(); renderAll(); closeModal('modalExp')
+    }
+
+    // small helpers
+    function animateDone(el){el.parentElement.style.transition='all .18s';el.parentElement.style.transform='scale(0.98)';setTimeout(()=>{el.parentElement.style.transform='';},180)}
+
+    // init
+    load()
+  </script>
+</body>
+</html>
